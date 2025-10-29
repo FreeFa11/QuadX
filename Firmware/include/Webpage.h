@@ -310,11 +310,11 @@ const char Webpage[] = R"(
 		<div class="controls">
 			<label for="S1">Slider 1</label>
 			<input type="range" id="S1" min="0" max="100" value="0" class="slider">
-			<input type="range" id="S2" min="0" max="100" value="100" class="slider">
+			<input type="range" id="S2" min="0" max="100" value="0" class="slider">
 			<label for="S2">Slider 2</label>
 			<label for="S3">Slider 3</label>
 			<input type="range" id="S3" min="0" max="100" value="0" class="slider">
-			<input type="range" id="S4" min="0" max="100" value="100" class="slider">
+			<input type="range" id="S4" min="0" max="100" value="0" class="slider">
 			<label for="S4">Slider 4</label>
 		</div>
 		<!-- Black screen placeholder with updated 16:9 aspect ratio -->

@@ -1,32 +1,40 @@
-/*   Motor Output are handled Here   */
-
-
-// Definition
-#define FREQUENCY               30000
-#define RESOLUTION              10
-#define MotorOnePin             2
-#define MotorTwoPin             3
-#define MotorThreePin           4
-#define MotorFourPin            5
-#define MotorOneChannel         0
-#define MotorTwoChannel         1
-#define MotorThreeChannel       2
-#define MotorFourChannel        3
-
-typedef struct {
-    int One, Two, Three, Four;
-} MotorData;
-
-
 // Includes
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 
+// Definition
+#define MotorFrequency          20000
+#define MotorResolution         10
+#define MotorPinOne             4
+#define MotorPinTwo             5
+#define MotorPinThree           3
+#define MotorPinFour            2
+#define MotorChannelOne         0
+#define MotorChannelTwo         1
+#define MotorChannelThree       2
+#define MotorChannelFour        3
 
-// Ouput Setup
+typedef struct {
+    int One = 1023, Two = 1023, Three = 1023, Four = 1023;
+} MotorData;
+
+
+
+
+// Objects
 extern QueueHandle_t MotorQueue;
-extern TaskHandle_t MotorTask;
+extern TaskHandle_t MotorTaskHandle;
 
-void SetupMotor();
-void StartMotor();
-void SendMotorPWM(void *param);
+
+// Declarations
+void MotorTask(void *param);
+
+class Motor
+{
+public:
+    Motor();
+    ~Motor();
+
+    void InitializeMotor();
+    void StartMotor();
+};

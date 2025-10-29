@@ -6,39 +6,44 @@ AsyncWebServer myServer(WebserverPort);
 AsyncWebSocket mySocket(WebsocketURL);
 QueueHandle_t InputQueue;
 
-void StartWiFi()
+
+// Definitions
+Webserver::Webserver(){}
+Webserver::~Webserver(){}
+
+void Webserver::StartWiFi()
 {
     // WiFi.mode(WIFI_MODE_AP);
     WiFi.mode(WIFI_MODE_STA);
-    WiFi.begin("Wifi", "LinkinPark");
-    // WiFi.begin("Testing", "dontaskme");
+    // WiFi.begin("Wifi", "LinkinPark");
+    WiFi.begin("Testing", "dontaskme");
 
     // Wait till Connection
-    Serial.print("\nConnecting ");
+    // Serial.print("\nConnecting ");
     while(WiFi.status() != WL_CONNECTED)
     {
-        Serial.print('.');
+        // Serial.print('.');
         vTaskDelay(250 / portTICK_PERIOD_MS);
     }
-    Serial.print("\tConnected!!\n");
+    // Serial.print("\tConnected!!\n");
     
-    Serial.print("IP Address: ");
-    Serial.println(WiFi.localIP());
+    // Serial.print("IP Address: ");
+    // Serial.println(WiFi.localIP());
     vTaskDelay(100 /portTICK_RATE_MS);
 
     // Multicast DNS 
-    MDNS.begin(MulticastDomainName);
+    MDNS.begin(DomainName);
 }
 
-void StartWebserver()
+void Webserver::StartWebserver()
 {
-    myServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){request->send_P(CodeOK, "text/html", Webpage);});
+    myServer.on("/", HTTP_GET, [](AsyncWebServerRequest *request){request->send_P(int(Code::Okay), "text/html", Webpage);});
     myServer.addHandler(&mySocket);
     myServer.begin();
     mySocket.onEvent(onWebSocketEvent);
 
     // Define Queue
-    InputQueue = xQueueCreate(2, sizeof(InputData));
+    InputQueue = xQueueCreate(2, sizeof(ControllerData));
 }
 
 void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
@@ -46,26 +51,25 @@ void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsE
     switch (type)
     {
     case WS_EVT_CONNECT:
-        Serial.printf("Connected\t: #%u %s\n", client->id(), client->remoteIP().toString().c_str());
+        // Serial.printf("Connected\t: #%u %s\n", client->id(), client->remoteIP().toString().c_str());
         break;
     case WS_EVT_DATA:
-        SendInputData(data, len);
+        HandleInputData(data, len);
         break;
     case WS_EVT_DISCONNECT:
-        Serial.printf("Disconnected\t: %s",  client->remoteIP().toString().c_str());
+        // Serial.printf("Disconnected\t: %s",  client->remoteIP().toString().c_str());
         break;
     }
 }
 
-void SendInputData(uint8_t *data, size_t len)
+void HandleInputData(uint8_t *data, size_t len)
 {
     JsonDocument myJSON;
-    InputData newData;
+    ControllerData newData;
 
     DeserializationError error = deserializeJson(myJSON, data, len);
     if (error) {
-        // Serial.print("JSON Parsing Failed:");
-        // Serial.println(error.c_str());
+        // Serial.print("JSON Failed!!");
         return;
     }
 
@@ -79,10 +83,10 @@ void SendInputData(uint8_t *data, size_t len)
     newData.Toggle3 = bool(myJSON["T3"]);
     newData.Toggle4 = bool(myJSON["T4"]);
 
-    newData.Joystick1X = float(myJSON["J1"]["X"]);
-    newData.Joystick1Y = float(myJSON["J1"]["Y"]);
-    newData.Joystick2X = float(myJSON["J2"]["X"]);
-    newData.Joystick2Y = float(myJSON["J2"]["Y"]);
+    newData.JoystickX1 = float(myJSON["J1"]["X"]);
+    newData.JoystickY1 = -float(myJSON["J1"]["Y"]);             // For some reason It comes inverted
+    newData.JoystickX2 = float(myJSON["J2"]["X"]);
+    newData.JoystickY2 = -float(myJSON["J2"]["Y"]);
 
     xQueueSend(InputQueue, &newData, 0);
 }

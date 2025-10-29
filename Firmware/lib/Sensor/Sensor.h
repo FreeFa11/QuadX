@@ -1,38 +1,57 @@
-/*   Sensors are handled Here   */
-
-
-// Definitions
-#define SDAWire             18
-#define SCLWire             16
-#define SDAWire1            2
-#define SCLWire1            15
-
-#define AlphaLPF            0.3
-#define AlphaCF             0.2
-#define IMUDelay            100
-
-typedef struct {
-    float Pitch, Roll, Yaw;
-} SensorData;
-
-
 // Includes
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
-
-#include "Wire.h"
-#include "MPU6050.h"
-#include "HMC5883L.h"
 #include "math.h"
+#include "Wire.h"
+#include "MPU9250.h"
+#include "HMC5883L.h"
+#include "../../include/Functions.h"
+
+// Definitions
+#define SDAWire             8
+#define SCLWire             7
+#define SDAWire1            2
+#define SCLWire1            15
+
+#define IMUDelay            3
+#define IMUFrequency        (1000 / IMUDelay)
+#define AlphaCF             .98
+
+typedef struct {
+    float Pitch, Roll, Yaw, PitchRate, RollRate, YawRate;
+    uint32_t Time = 1;
+} SensorData;
 
 
-// Sensors Setup
+
+
+// Objects
 extern QueueHandle_t SensorQueue;
-extern TaskHandle_t SensorTask;
+extern TaskHandle_t SensorTaskHandle;
 
-void SetupIMU();
-void SetupCompass();
-void EstimateEulerAngles(float *Pitch, float *Roll, float *Yaw);
-void SendSensorData(void* param);
-void StartSensors();
-void ReadBias(int Iteration);
+
+// Declaration
+void SensorTask(void* param);
+
+class Sensor
+{
+private:
+    float AX, AY, AZ, GX, GY, GZ;
+    // float MX, MY, MZ;
+    float AccPitch, AccRoll, GyroPitch, GyroRoll, GyroYaw;
+    float GyroRollRate, GyroPitchRate, GyroYawRate;
+    float Roll, Pitch, Yaw;
+    uint32_t CurrentTime, TimeInterval;
+    
+public:
+    Sensor();
+    ~Sensor();
+
+    void InitializeIMU();
+    void InitializeCompass();
+    void UpdateData();
+    void UpdateData(int16_t &AX, int16_t &AY, int16_t &AZ, int16_t &GX, int16_t &GY, int16_t &GZ);
+    void UpdateOrientation();
+    void UpdateOrientation(float &Roll, float &Pitch, float &Yaw, float &RollRate, float &PitchRate, float &YawRate, uint32_t &Time);
+    void StartSensors();
+};
