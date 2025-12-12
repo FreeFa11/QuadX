@@ -1,0 +1,146 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><title>Control</title><link rel="icon" type="image/x-icon" href="./favicon.ico"><style>body{display:flex;flex-direction:column;align-items:center;font-family:Arial,sans-serif;background-color:#131312;color:#e0e0e0;margin:0;padding:10px;height:100vh;overflow:hidden}h1{font-size:2rem;font-weight:700;text-transform:uppercase;color:#5aa6f3;letter-spacing:4px;text-shadow:2px 2px 5px rgba(0,0,0,.3);line-height:1.2;margin-bottom:20px;transition:all .3s ease-in-out}h1:hover{color:#943ce7;text-shadow:2px 2px 8px rgba(0,0,0,.5)}#refresh-button{position:absolute;top:40px;right:30px;padding:1px;font-size:10px;background-color:#3b3b5c;color:#fff;border:none;cursor:pointer;border-radius:5px}#refresh-button:hover{background-color:#6b6b9e}.future-screen{width:90vw;max-width:600px;aspect-ratio:16/9;background-color:#3b3b5cc5;border:2px solid #333;margin-bottom:20px}.slider-container{display:flex;align-items:center;gap:8px;margin:5px 0;width:90%;background-color:#2c2c3e;padding:12px;border-radius:10px;border:2px solid #1e1e2f;box-shadow:0 2px 8px rgba(0,0,0,.4)}.slider-container label{width:70px;text-align:right;color:#d1d1d1;font-size:1.1em;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;font-weight:600}.slider{width:100%;max-width:275px;height:8px;background:#3b3b5c;outline:0;opacity:.9;transition:opacity .2s;border-radius:5px;border:3px solid #3b3b5c;box-shadow:0 2px 4px rgba(0,0,0,.3);-webkit-appearance:none;appearance:none;touch-action:manipulation}.slider:active{transform:scale(1.03);opacity:1}.slider:hover{opacity:1}.slider::-webkit-slider-thumb{width:35px;height:18px;background:linear-gradient(135deg,#26a5fa,#fa03ee);border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.4);cursor:pointer;-webkit-appearance:none}.slider::-moz-range-thumb{width:35px;height:18px;background:linear-gradient(135deg,#f83333,#e74c3c);border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.4);cursor:pointer}.toggle{position:relative;width:55px;height:25px;background-color:#3b3b5c;border-radius:15px;cursor:pointer;transition:background-color .3s;box-shadow:0 4px 8px rgba(0,0,0,.3);touch-action:manipulation}.toggle .switch{position:absolute;top:2px;left:2px;width:21px;height:21px;background-color:#252525;border-radius:50%;transition:all .3s}.toggle.active{background:linear-gradient(135deg,#26a5fa,#fa03ee);transform:scale(1.1)}.toggle.active .switch{left:30px}.toggle-controls{display:flex;justify-content:center;margin-top:10px;gap:25px}.toggle-controls .toggle{margin:0 20px}@media screen and (max-width:480px){.toggle-controls .toggle{margin:0 4px}.controls{gap:15px}.slider{max-width:160px}}.joystick{position:absolute;border:3px solid #fff;border-radius:50%;background-color:rgba(255,255,255,.2);display:none;justify-content:center;align-items:center;color:#fff;font-size:14px;pointer-events:none}.joystick-boundary{position:absolute;margin-left:-80px;margin-top:-80px;border:2px dashed #888;border-radius:50%;display:none;pointer-events:none}.control-section{display:flex;flex-direction:column;align-items:center;width:100%;max-width:600px;gap:15px}.controls{display:flex;flex-wrap:wrap;justify-content:center;width:100%;gap:20px}@media only screen and (orientation:portrait){.control-section{margin-top:30px}}.burger{position:fixed;top:20px;left:20px;cursor:pointer;z-index:2147483647}.burger div{width:24px;height:2px;background-color:#e0e0e0;margin:5px 0;transition:.3s}.nav-menu{position:fixed;top:0;left:-220px;width:170px;height:100%;background-color:#1e1e1e;box-shadow:2px 0 5px rgba(0,0,0,.5);display:flex;flex-direction:column;padding-top:60px;transition:left .3s ease}.nav-menu.show{left:0}.nav-menu a{color:#e0e0e0;padding:12px 20px;text-decoration:none;display:flex;align-items:center;font-size:16px;border-bottom:1px solid #2c2c2c}.nav-menu a:hover{background-color:#2a2a2a}.nav-icon{width:30px;height:30px;margin-right:12px;flex-shrink:0;color:#e0e0e0}</style></head><body><h1>Controller</h1><button id="refresh-button" onclick="location.reload()">&#x21bb;</button><div class="control-section"><div class="controls"><input type="range" id="S1" min="0" max="100" value="0" class="slider"> <input type="range" id="S2" min="0" max="100" value="0" class="slider"> <input type="range" id="S3" min="0" max="100" value="0" class="slider"> <input type="range" id="S4" min="0" max="100" value="0" class="slider"></div><div class="future-screen"></div><div class="toggle-controls"><div class="toggle" id="T1"><div class="switch"></div></div><div class="toggle" id="T2"><div class="switch"></div></div><div class="toggle" id="T3"><div class="switch"></div></div><div class="toggle" id="T4"><div class="switch"></div></div></div></div><div id="J1" class="joystick">J1</div><div id="J2" class="joystick">J2</div><div id="LeftBoundary" class="joystick-boundary"></div><div id="RightBoundary" class="joystick-boundary"></div><div class="burger" onclick="toggleMenu()"><div></div><div></div><div></div></div><nav class="nav-menu" id="menu"><a href="./Controller.html"><img src="./controller-icon.svg" alt="Controller" class="nav-icon">Controller</a> <a href="./Calibration.html"><img src="./calibration-icon.svg" alt="Calibration" class="nav-icon">Calibration</a> <a href="./Connection.html"><img src="./connection-icon.svg" alt="Connection" class="nav-icon">Connection</a></nav><script>const DEFAULT_VALUES = {
+		servoA:512,
+		servoB:512,
+		escstartupA:0,
+		escstartupB:0,
+		deadbandA:50,
+		deadbandB:50,
+		maxthrottleA:400,
+		maxthrottleB:400,
+		sensitivityS1:0,
+		sensitivityS2:0,
+		sensitivityS3:0,
+		sensitivityS4:0,
+		sensitivityX1:0,
+		sensitivityX2:0,
+		sensitivityY1:0,
+		sensitivityY2:0};
+	let sensitivity = {...DEFAULT_VALUES};
+	
+	async function loadSettings() {
+		try {
+			const response = await fetch('/api/getCalibration');
+			if (!response.ok) throw new Error('Server error');
+			sensitivity = {...DEFAULT_VALUES, ...await response.json()};
+			console.log('Settings loaded:', sensitivity);
+		} catch (error) {
+			console.error('Error loading settings:', error);
+		}
+	}
+	
+	document.querySelectorAll('.toggle').forEach(toggle => {
+		const handler = e => {e.preventDefault(); toggle.classList.toggle('active');};
+		toggle.addEventListener('click', handler);
+		toggle.addEventListener('touchstart', handler);
+	});
+	
+	const joystickSize = 60, boundarySize = 130, joysticks = {};
+	
+	function setupJoystick(joyId, region, boundaryId) {
+		const joy = document.getElementById(joyId);
+		const boundary = document.getElementById(boundaryId);
+		let origin = {x:0,y:0}, active = false, touchId = null;
+		const maxDistance = boundarySize / 2;
+		const state = {dx:0, dy:0};
+		joysticks[joyId] = state;
+		
+		Object.assign(joy.style, {width:`${joystickSize}px`,height:`${joystickSize}px`});
+		Object.assign(boundary.style, {width:`${boundarySize}px`,height:`${boundarySize}px`,marginLeft:`-${boundarySize/2}px`,marginTop:`-${boundarySize/2}px`});
+		
+		const inRegion = (x,y) => x>=region.left && x<=region.right && y>=region.top && y<=region.bottom;
+		
+		const activate = (x,y,id=null) => {
+			origin = {x,y}; touchId = id; active = true;
+			Object.assign(joy.style, {left:(x-joystickSize/2)+'px',top:(y-joystickSize/2)+'px',display:'flex',transform:'translate(0,0)'});
+			Object.assign(boundary.style, {left:x+'px',top:y+'px',display:'block'});
+		};
+		
+		const move = (x,y) => {
+			if (!active) return;
+			let dx = x - origin.x, dy = y - origin.y;
+			const dist = Math.sqrt(dx*dx + dy*dy);
+			if (dist > maxDistance) {
+				const ratio = maxDistance / dist;
+				dx *= ratio; dy *= ratio;
+			}
+			state.dx = Math.round(dx); state.dy = Math.round(dy);
+			joy.style.transform = `translate(${state.dx}px,${state.dy}px)`;
+		};
+		
+		const deactivate = () => {
+			if (!active) return;
+			Object.assign(joy.style, {display:'none',transform:'translate(0,0)'});
+			boundary.style.display = 'none';
+			active = false; touchId = null; state.dx = 0; state.dy = 0;
+		};
+		
+		document.addEventListener('mousedown', e => !active && inRegion(e.clientX,e.clientY) && activate(e.clientX,e.clientY));
+		document.addEventListener('mousemove', e => active && move(e.clientX,e.clientY));
+		document.addEventListener('mouseup', () => active && deactivate());
+		
+		document.addEventListener('touchstart', e => {
+			if ([...e.changedTouches].some(t => !active && inRegion(t.clientX,t.clientY))) {
+				e.preventDefault();
+				const t = [...e.changedTouches].find(t => !active && inRegion(t.clientX,t.clientY));
+				t && activate(t.clientX,t.clientY,t.identifier);
+			}
+		}, {passive:false});
+		
+		document.addEventListener('touchmove', e => {
+			if (!active) return;
+			e.preventDefault();
+			const t = [...e.changedTouches].find(t => t.identifier === touchId);
+			t && move(t.clientX,t.clientY);
+		}, {passive:false});
+		
+		['touchend','touchcancel'].forEach(evt => {
+			document.addEventListener(evt, e => {
+				[...e.changedTouches].find(t => t.identifier === touchId) && deactivate();
+			}, {passive:false});
+		});
+	}
+	
+	window.onload = async () => {
+		await loadSettings();
+		const w = window.innerWidth, h = window.innerHeight;
+		setupJoystick('J1', {left:0,top:h*0.65,right:w*0.4,bottom:h}, 'LeftBoundary');
+		setupJoystick('J2', {left:w*0.6,top:h*0.65,right:w,bottom:h}, 'RightBoundary');
+		initWebSocket();
+	};
+	
+	let socket;
+	function initWebSocket() {
+		socket = new WebSocket('ws://'+window.location.hostname+'/CommunicationSocket');
+		socket.onopen = () => {console.log('WebSocket open'); socket.send(JSON.stringify({type:'Controller'}));};
+		socket.onmessage = e => console.log('Received:', e.data);
+		socket.onerror = e => console.error('WebSocket Error:', e);
+		socket.onclose = e => console.log(e.wasClean ? `Closed cleanly: ${e.code}` : `Connection closed: ${e.code}`);
+		
+		setInterval(() => {
+			const data = gatherControlData();
+			if (data && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data));
+		}, 20);
+	}
+	
+	function gatherControlData() {
+		const getSens = id => Math.round(parseFloat(document.getElementById(id).value) * (sensitivity['sensitivity'+id]/100));
+		const getJoy = (jId,axis) => Math.round((joysticks[jId]?.[axis==='X'?'dx':'dy'] || 0) / (boundarySize/2) * 100 * (sensitivity['sensitivity'+axis+jId.slice(1)]/100));
+		
+		const data = {
+			S1: getSens('S1'), S2: getSens('S2'), S3: getSens('S3'), S4: getSens('S4'),
+			T1: document.getElementById('T1').classList.contains('active'),
+			T2: document.getElementById('T2').classList.contains('active'),
+			T3: document.getElementById('T3').classList.contains('active'),
+			T4: document.getElementById('T4').classList.contains('active'),
+			J1: {X: getJoy('J1','X'), Y: getJoy('J1','Y')},
+			J2: {X: getJoy('J2','X'), Y: getJoy('J2','Y')}
+		};
+		
+		return Object.values(data).slice(0,4).every(v => !isNaN(v)) && 
+			Object.values(data).slice(4,8).every(v => typeof v === 'boolean') &&
+			!isNaN(data.J1.X) && !isNaN(data.J1.Y) && !isNaN(data.J2.X) && !isNaN(data.J2.Y) ? data : null;
+	}
+	
+	function toggleMenu() {
+		document.getElementById('menu').classList.toggle('show');
+	}</script></body></html>

@@ -12,20 +12,20 @@ Motor::~Motor(){}
 
 void Motor::InitializeMotor()
 {
-    ledcSetup(MotorChannelOne, MotorFrequency, MotorResolution);
-    ledcSetup(MotorChannelTwo, MotorFrequency, MotorResolution);
-    ledcSetup(MotorChannelThree, MotorFrequency, MotorResolution);
-    ledcSetup(MotorChannelFour, MotorFrequency, MotorResolution);
+    ledcSetup(MotorChannelA,  MotorFrequency, MotorResolution);
+    ledcSetup(MotorChannelB,  MotorFrequency, MotorResolution);
+    ledcSetup(MotorChannelC,  MotorFrequency, MotorResolution);
+    ledcSetup(MotorChannelD,  MotorFrequency, MotorResolution);
 
-    ledcAttachPin(MotorPinOne, MotorChannelOne);
-    ledcAttachPin(MotorPinTwo, MotorChannelTwo);
-    ledcAttachPin(MotorPinThree, MotorChannelThree);
-    ledcAttachPin(MotorPinFour, MotorChannelFour);
+    ledcAttachPin(MotorPinA,  MotorChannelA);
+    ledcAttachPin(MotorPinB,  MotorChannelB);
+    ledcAttachPin(MotorPinC,  MotorChannelC);
+    ledcAttachPin(MotorPinD,  MotorChannelD);
 
-    ledcWrite(MotorChannelOne, 1023);
-    ledcWrite(MotorChannelTwo, 1023);
-    ledcWrite(MotorChannelThree, 1023);
-    ledcWrite(MotorChannelFour, 1023);    
+    ledcWrite(MotorChannelA,  0);
+    ledcWrite(MotorChannelB,  0);
+    ledcWrite(MotorChannelC,  0);
+    ledcWrite(MotorChannelD,  0);    
 }
 
 void Motor::StartMotor()
@@ -51,20 +51,11 @@ void MotorTask(void *param)
     {
         if (xQueueReceive(MotorQueue, &newData, 0) == pdTRUE)
         {
-            ledcWrite(MotorChannelOne, newData.One);
-            ledcWrite(MotorChannelTwo, newData.Two);
-            ledcWrite(MotorChannelThree, newData.Three);
-            ledcWrite(MotorChannelFour, newData.Four);
+            ledcWrite(MotorChannelA, (uint16_t)newData.A);
+            ledcWrite(MotorChannelB, (uint16_t)newData.B);
+            ledcWrite(MotorChannelC, (uint16_t)newData.C);
+            ledcWrite(MotorChannelD, (uint16_t)newData.D);
         }
-
-        // Serial.print(">One:");
-        // Serial.println(newData.One);
-        // Serial.print(">Two:");
-        // Serial.println(newData.Two);
-        // Serial.print(">Three:");
-        // Serial.println(newData.Three);
-        // Serial.print(">Four:");
-        // Serial.println(newData.Four);
 
         vTaskDelay(5 / portTICK_RATE_MS);
     }

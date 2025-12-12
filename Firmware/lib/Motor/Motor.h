@@ -5,17 +5,17 @@
 // Definition
 #define MotorFrequency          20000
 #define MotorResolution         10
-#define MotorPinOne             4
-#define MotorPinTwo             5
-#define MotorPinThree           3
-#define MotorPinFour            2
-#define MotorChannelOne         0
-#define MotorChannelTwo         1
-#define MotorChannelThree       2
-#define MotorChannelFour        3
+#define MotorPinA               2
+#define MotorPinB               3
+#define MotorPinC               4
+#define MotorPinD               5
+#define MotorChannelA           0
+#define MotorChannelB           1
+#define MotorChannelC           2
+#define MotorChannelD           3
 
 typedef struct {
-    int One = 1023, Two = 1023, Three = 1023, Four = 1023;
+    int16_t A = 1023, B = 1023, C = 1023, D = 1023;
 } MotorData;
 
 

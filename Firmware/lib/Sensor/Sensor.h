@@ -1,28 +1,39 @@
+#pragma once
+
+// Definitions
+#define SDAWire             1
+#define SCLWire             0
+#define IMUDelay            2
+#define IMUFrequency        (1000 / IMUDelay)
+
+
+// Filter Tuning
+#define NumericType         float
+#define Kp                  .5          // Mahony
+#define Ki                  .003
+#define Kacc                1
+#define Kmag                2
+#define Beta                0.5         // Madgwick
+
+
+
+
+
+
 // Includes
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include "math.h"
 #include "Wire.h"
-#include "MPU9250.h"
-#include "HMC5883L.h"
-#include "../../include/Functions.h"
+#include "MPU6500.h"
+#include "Control.h"
 
-// Definitions
-#define SDAWire             8
-#define SCLWire             7
-#define SDAWire1            2
-#define SCLWire1            15
 
-#define IMUDelay            3
-#define IMUFrequency        (1000 / IMUDelay)
-#define AlphaCF             .98
 
+// Structures
 typedef struct {
-    float Pitch, Roll, Yaw, PitchRate, RollRate, YawRate;
-    uint32_t Time = 1;
+    NumericType Pitch, Roll, Yaw, PitchRate, RollRate, YawRate;
 } SensorData;
-
-
 
 
 // Objects
@@ -33,25 +44,56 @@ extern TaskHandle_t SensorTaskHandle;
 // Declaration
 void SensorTask(void* param);
 
+
+
+template<typename T>
 class Sensor
 {
-private:
-    float AX, AY, AZ, GX, GY, GZ;
-    // float MX, MY, MZ;
-    float AccPitch, AccRoll, GyroPitch, GyroRoll, GyroYaw;
-    float GyroRollRate, GyroPitchRate, GyroYawRate;
-    float Roll, Pitch, Yaw;
-    uint32_t CurrentTime, TimeInterval;
+// private:                                                 // Later
+public:
+    T AX, AY, AZ, GX, GY, GZ;                               // IMU
+    T MX, MY, MZ;                                           // MAG
     
 public:
     Sensor();
     ~Sensor();
 
     void InitializeIMU();
-    void InitializeCompass();
-    void UpdateData();
-    void UpdateData(int16_t &AX, int16_t &AY, int16_t &AZ, int16_t &GX, int16_t &GY, int16_t &GZ);
-    void UpdateOrientation();
-    void UpdateOrientation(float &Roll, float &Pitch, float &Yaw, float &RollRate, float &PitchRate, float &YawRate, uint32_t &Time);
+    void InitializeMAG();
+    void UpdateIMUData();
+    void UpdateIMUData(T &AX, T &AY, T &AZ, T &GX, T &GY, T &GZ);
+    void UpdateMAGData();
+    void UpdateMAGData(T &MX, T &MY, T &MZ);    
+    void NormalizeVectors();
     void StartSensors();
+};
+template<typename T>
+
+
+
+class Quaternion
+{
+private:
+    void Normalize();
+public:
+    T w=1, x=0, y=0, z=0;
+
+    Quaternion();
+    Quaternion(T w, T x, T y, T z);
+    ~Quaternion();
+
+    // Operations
+    Quaternion<T> operator*(Quaternion<T> Other);
+    Quaternion<T> & operator*=(Quaternion<T> Other);        // Return by reference and not pointer
+    Quaternion<T> operator*(T Value);
+    Quaternion<T> & operator*=(T Value);                    // Return by reference and not pointer
+    Quaternion<T> operator+(Quaternion<T> Other);
+    Quaternion<T> operator-(Quaternion<T> Other);
+    Quaternion<T> inverse();
+
+    // Filters
+    void UpdateMahony(Sensor<T> &S);
+    void UpdateMahony(T &GX, T &GY, T &GZ, T &AX, T &AY, T &AZ, T &MX, T &MY, T &MZ);
+    void UpdateMadgwick(Sensor<T> &S);
+    void UpdateMadgwick(T &GX, T &GY, T &GZ, T &AX, T &AY, T &AZ, T &MX, T &MY, T &MZ);    
 };

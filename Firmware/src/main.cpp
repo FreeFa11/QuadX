@@ -8,18 +8,18 @@
 #include <Motor.h>
 #include <Sensor.h>
 #include <Webserver.h>
-#include <Functions.h>
+#include "Control.h"
 
 
 
 // Task Handles & Functions
-void Controller(void *param);
+void SystemTask(void *param);
 TaskHandle_t ControllerTask;
 void Blinky(void *param);
 TaskHandle_t BlinkyTask;
 
 // Objects
-Sensor droneSensor;
+Sensor<float> droneSensor;
 Motor droneMotor;
 Webserver droneWebserver;
 
@@ -29,7 +29,7 @@ Webserver droneWebserver;
 void setup()
 {
     Serial.begin(115200);
-
+    LittleFS.begin();
 
 //  Components
     // Wifi & Server
@@ -39,7 +39,7 @@ void setup()
     droneMotor.InitializeMotor();
     droneMotor.StartMotor();
     // Sensor
-    // droneSensor.InitializeCompass();
+    // droneSensor.InitializeMAG();
     droneSensor.InitializeIMU();
     droneSensor.StartSensors();
 
@@ -55,8 +55,8 @@ void setup()
       0
     );
     xTaskCreatePinnedToCore(
-      Controller,
-      "Controller",
+      SystemTask,
+      "SystemTask",
       6000,
       NULL,
       3,
@@ -65,107 +65,145 @@ void setup()
     );
 }
 void loop(){vTaskDelete(NULL);}
-
 void Blinky(void *param)
 {
-  static bool STATE=false;
-  pinMode(BUILTIN_LED, OUTPUT);
-
+  uint8_t LEDS[3] = {0, 0, 0};
+  uint8_t CountColor;
+  uint16_t Delay = 300, CountDelay = 4;
+  
+  // Builtin NEOPIXEL LED 10
+  pinMode(10, OUTPUT);
+  
   while(true)
   {
-    digitalWrite(BUILTIN_LED, STATE);
-    STATE = !STATE;
+    for (int i = 0; i < CountDelay; ++i)
+    {
+      for (int i = 0; i < 3; ++i)
+      {
+        LEDS[i] = 0;
+      }
 
-    vTaskDelay(500 / portTICK_RATE_MS);
+      LEDS[CountColor] = 64;
+      neopixelWrite(10, LEDS[0], LEDS[1], LEDS[2]);
+      vTaskDelay(Delay / portTICK_RATE_MS);
+
+      neopixelWrite(10, 0, 0, 0);
+      vTaskDelay(Delay / portTICK_RATE_MS);
+
+      CountColor++;
+      CountColor %= 3;
+    }
+   
+    CountDelay += CountDelay;
+    Delay -= (Delay)/2;
+    if (Delay < 30){Delay = 500; CountDelay = 4;}
   }
 }
 
 
 
-// ************************************************ Flight Controller ******************************************* //
 
-void Controller(void *param)
+// ************************************************ Flight System ******************************************* //
+
+void SystemTask(void *param)
+{
+  System mySystem(State::Flight);
+  mySystem.Start();
+}
+
+
+void System::FlightHandle()
 {
     SensorData Attitude;
     MotorData Motor;
     ControllerData Input;
-    float Roll, Pitch, Yaw, RollE, PitchE, YawE;                  // Error
-    float RollR, PitchR, YawR, RollRE, PitchRE, YawRE;            // Rate, Rate Error
-    float RollREP=0, PitchREP=0, YawREP=0;                              // Rate Error Previous
-    float RollITP=0, PitchITP=0, YawITP=0;                              // Integral Term Previous
+    CalibrationData Settings;
 
-    // Deactivated
-    while (Input.Toggle1 != true)
+    // Read Saved CalibrationData
+    ReadCalibration(Settings);
+
+    while(xQueueIsQueueEmptyFromISR(StateQueue))
     {
-      vTaskDelay(20 / portTICK_RATE_MS);
-      xQueueReceive(InputQueue, &Input, 0);
+      // New Input Data from Controller
+      xQueueReceive(ControllerQueue, &Input, 0);
+
+      if (Input.Toggle2 & Input.Toggle1){
+        Motor.A  = Settings.motorA + Input.Slider1 + Input.JoystickX2;
+        Motor.B  = Settings.motorB + Input.Slider1 - Input.JoystickX2;
+        Motor.C  = Settings.motorC + Input.Slider1 + Input.JoystickY2;
+        Motor.D  = Settings.motorD + Input.Slider1 - Input.JoystickY2;
+      }
+      else if (Input.Toggle1){
+        Serial.printf("Sens1:%d\t", Settings.sensitivityS1);
+        Serial.printf("X1:%d\tY1:%d\tX2:%d\tY2:%d\n", Input.JoystickX1, Input.JoystickY1, Input.JoystickX2, Input.JoystickY2);
+      }
+      else{
+        Motor.A = 0;
+        Motor.B = 0;
+        Motor.C = 0;
+        Motor.D = 0;
+      }      
+
+      Motor.A = Clamp(Motor.A, (int16_t)0, Settings.maxthrottle);
+      Motor.B = Clamp(Motor.B, (int16_t)0, Settings.maxthrottle);
+      Motor.C = Clamp(Motor.C, (int16_t)0, Settings.maxthrottle);
+      Motor.D = Clamp(Motor.D, (int16_t)0, Settings.maxthrottle);
+      xQueueSend(MotorQueue, &Motor, 1);
+
+      vTaskDelay(2 / portTICK_PERIOD_MS);
     }
 
-    while(true)
+      // Disable the Motors
+  Motor.A   = 0;
+  Motor.B   = 0;
+  Motor.C   = 0;
+  Motor.D   = 0;
+  xQueueSend(MotorQueue, &Motor, 1);
+
+}
+
+void System::CalibrationHandle()
+{
+  CalibrationData newData;
+  MotorData Motor;
+
+  while(xQueueIsQueueEmptyFromISR(StateQueue))
+  {
+    if (xQueueReceive(CalibrationQueue, &newData, 0))
     {
-        // Refresh Data
-        if (xQueueReceive(SensorQueue, &Attitude, 0) == pdTRUE)
-        {
-          // Serial.print(">Time:");
-          // Serial.println(Attitude.Time);
-          xQueueReceive(InputQueue, &Input, 0);
-
-
-      // Error  (External)
-          // Angle Mode
-          RollE  = Input.JoystickX2 * .2f - Attitude.Roll;
-          PitchE = Input.JoystickY2 * .2f - Attitude.Pitch;
-          YawE   = Input.JoystickX1 * .2f - Attitude.Yaw;
-
-      // PID    (External)
-          // Angle Mode
-          Roll    = AngleModeP * RollE;
-          Pitch   = AngleModeP * PitchE;
-          Yaw     = AngleModeP * YawE;
-
-
-      // Error  (Internal)
-          // Angle Mode
-          RollRE  = Roll    -   Attitude.RollRate * .007f;
-          PitchRE = Pitch   -   Attitude.PitchRate * .007f;
-          YawRE   = Yaw     -   Attitude.YawRate * .007f;
-          // This has been scaled to get values near each other;
-          // Angle Rate Mode
-          // RollRE  = Input.JoystickX2*5.0f   -   Attitude.RollRate * .015f;
-          // PitchRE = Input.JoystickY2*5.0f   -   Attitude.PitchRate * .015f;
-          // YawRE   = Input.JoystickX1*5.0f   -   Attitude.YawRate * .015f;
-
-
-      // PID    (Internal)
-          RollR    = PID(RollRE, RollREP, RollITP, Attitude.Time, AngleRateP, AngleRateI, AngleRateD);
-          PitchR   = PID(PitchRE, PitchREP, PitchITP, Attitude.Time, AngleRateP, AngleRateI, AngleRateD);
-          YawR     = PID(YawRE, YawREP, YawITP, Attitude.Time, AngleRateP, AngleRateI, AngleRateD);
-          RollREP = RollRE;
-          PitchREP = PitchRE;
-          YawREP = YawRE;
-
-
-      // Motor Output
-          Motor.One   = 1023 - 5 * Input.Slider1 - Input.Slider4     -     RollR  +  PitchR   +  YawR;
-          Motor.Two   = 1023 - 5 * Input.Slider1 - Input.Slider4     +     RollR  +  PitchR   -  YawR;
-          Motor.Three = 1023 - 5 * Input.Slider1 - Input.Slider4     +     RollR  -  PitchR   +  YawR;
-          Motor.Four  = 1023 - 5 * Input.Slider1 - Input.Slider4     -     RollR  -  PitchR   -  YawR;
-          Clamp(Motor.One, 500, 1023); Clamp(Motor.Two, 500, 1023);
-          Clamp(Motor.Three, 500, 1023); Clamp(Motor.Four, 500, 1023);
-          xQueueSend(MotorQueue, &Motor, 1);
-      
-        }
-
-        // Deactivated
-        if (Input.Toggle1 == false)
-        {
-          while (Input.Toggle1 == false)
-          {
-            Motor.One = 1023; Motor.Two = 1023; Motor.Three = 1023; Motor.Four = 1023;
-            xQueueSend(MotorQueue, &Motor, 1);
-            vTaskDelay(30 / portTICK_RATE_MS);
-            xQueueReceive(InputQueue, &Input, 0);
-          }
-        }
+      if (newData.save)
+            {
+              SaveCalibration(newData);
+            }
+      else  {
+              Motor.A   = newData.motorA;
+              Motor.B   = newData.motorB;
+              Motor.C   = newData.motorC;
+              Motor.D   = newData.motorD;
+              xQueueSend(MotorQueue, &Motor, 1);
+            }      
     }
+
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+  }
+
+  // Disable the Motors
+  Motor.A   = 0;
+  Motor.B   = 0;
+  Motor.C   = 0;
+  Motor.D   = 0;
+  xQueueSend(MotorQueue, &Motor, 1);
+}
+
+void System::ConnectionHandle()
+{
+  while(xQueueIsQueueEmptyFromISR(StateQueue))
+  {
+    vTaskDelay(10 / portTICK_PERIOD_MS);   
+  }
+}
+
+void System::UpdateState()
+{
+  xQueueReceive(StateQueue, &(this->currentState), 0);
 }
