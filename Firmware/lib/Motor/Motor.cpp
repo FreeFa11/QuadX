@@ -1,11 +1,6 @@
 #include <Motor.h>
 
 
-// Objects
-QueueHandle_t MotorQueue;
-TaskHandle_t MotorTaskHandle;
-
-
 // Definitions
 Motor::Motor(){}
 Motor::~Motor(){}
@@ -28,35 +23,18 @@ void Motor::InitializeMotor()
     ledcWrite(MotorChannelD,  0);    
 }
 
-void Motor::StartMotor()
+void Motor::UpdateMotor(uint16_t A, uint16_t B, uint16_t C, uint16_t D)
 {
-    MotorQueue = xQueueCreate(2, sizeof(MotorData));
-
-    xTaskCreatePinnedToCore(
-        MotorTask,
-        "MotorTask",
-        2048,
-        NULL,
-        3,
-        &MotorTaskHandle,
-        0
-    );
+    this->A = A;
+    this->B = B;
+    this->C = C;
+    this->D = D;
 }
 
-void MotorTask(void *param)
-{   
-    MotorData newData;
-
-    while (true)
-    {
-        if (xQueueReceive(MotorQueue, &newData, 0) == pdTRUE)
-        {
-            ledcWrite(MotorChannelA, (uint16_t)newData.A);
-            ledcWrite(MotorChannelB, (uint16_t)newData.B);
-            ledcWrite(MotorChannelC, (uint16_t)newData.C);
-            ledcWrite(MotorChannelD, (uint16_t)newData.D);
-        }
-
-        vTaskDelay(5 / portTICK_RATE_MS);
-    }
+void Motor::ActuateMotor()
+{
+    ledcWrite(MotorChannelA, A);
+    ledcWrite(MotorChannelB, B);
+    ledcWrite(MotorChannelC, C);
+    ledcWrite(MotorChannelD, D);
 }

@@ -266,9 +266,9 @@ bool MPU6500::Read() {
   accel_[1] = static_cast<float>(accel_cnts_[1]-ayb_) * accel_scale_;
   accel_[2] = static_cast<float>(accel_cnts_[2]-azb_) * accel_scale_;
   temp_ =    (static_cast<float>(temp_cnts_) - 21.0f) / TEMP_SCALE_ + 21.0f;
-  gyro_[0] =  static_cast<float>(gyro_cnts_[0]-gxb_) * gyro_scale_ * DEG2RAD_;
-  gyro_[1] =  static_cast<float>(gyro_cnts_[1]-gyb_) * gyro_scale_ * DEG2RAD_;
-  gyro_[2] =  static_cast<float>(gyro_cnts_[2]-gzb_) * gyro_scale_ * DEG2RAD_;
+  gyro_[0]  = static_cast<float>(gyro_cnts_[0]-gxb_) * gyro_scale_ * DEG2RAD_;
+  gyro_[1]  = static_cast<float>(gyro_cnts_[1]-gyb_) * gyro_scale_ * DEG2RAD_;
+  gyro_[2]  = static_cast<float>(gyro_cnts_[2]-gzb_) * gyro_scale_ * DEG2RAD_;
   return true;
 }
 bool MPU6500::WriteRegister(const uint8_t reg, const uint8_t data) {

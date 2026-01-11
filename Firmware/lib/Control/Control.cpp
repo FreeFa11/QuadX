@@ -36,7 +36,7 @@ void PID::SetIntegralLimit(float AbsoluteLimit)
 float PID::Update(float Error)
 {
     Iprevious = Clamp(Iprevious + I*(Error+Eprevious)*0.5f*ControlPeriod, IntegralLimit);
-    float output = P*Error     +     Iprevious    +     D*(Error-Eprevious)*ControlFrequency;
+    float output = P*Error     +     Iprevious    -     D*(Error-Eprevious)*ControlFrequency;
     Eprevious = Error;                                      // F=1/T to reduce Division
     return output; 
 }

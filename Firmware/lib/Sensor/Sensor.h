@@ -3,21 +3,37 @@
 // Definitions
 #define SDAWire             1
 #define SCLWire             0
-#define IMUDelay            2
-#define IMUFrequency        (1000 / IMUDelay)
-
 
 // Filter Tuning
 #define NumericType         float
-#define Kp                  .5          // Mahony
-#define Ki                  .003
+#define Kp                  1           // Mahony
+#define Ki                  .1
 #define Kacc                1
 #define Kmag                2
-#define Beta                0.5         // Madgwick
+#define Beta                .8          // Madgwick
+
+// Controller Tuning
+#define MAX_ROLL_DEGREE     45
+#define MAX_PITCH_DEGREE    45
+#define MAX_YAW_DEG_SEC     90
+#define TimerRateModeFreq   1000        // Must be integer multiple of Angle Mode Frequency
+#define TimerAngleModeFreq  250
+
+// Setup
+// #define HAS_MAGNETOMETER
 
 
 
 
+// Derived Definitions
+#define MAX_ROLL_RADIAN         MAX_ROLL_DEGREE *0.0174532925
+#define MAX_PITCH_RADIAN        MAX_PITCH_DEGREE*0.0174532925
+#define MAX_YAW_RAD_SEC         MAX_YAW_DEG_SEC *0.0174532925
+#define TimerRateModePeriod     float(1.0f/TimerRateModeFreq)
+#define TimerAngleModePeriod    float(1.0f/TimerAngleModeFreq)
+#define TimerRateModeCount      1000000/TimerRateModeFreq
+#define TimerAngleModeCount     1000000/TimerAngleModeFreq
+#define TimerModeSwitchCount    (TimerRateModeFreq/TimerAngleModeFreq)
 
 
 // Includes
@@ -26,14 +42,8 @@
 #include "math.h"
 #include "Wire.h"
 #include "MPU6500.h"
+#include "HMC5883L.h"
 #include "Control.h"
-
-
-
-// Structures
-typedef struct {
-    NumericType Pitch, Roll, Yaw, PitchRate, RollRate, YawRate;
-} SensorData;
 
 
 // Objects
@@ -49,39 +59,46 @@ void SensorTask(void* param);
 template<typename T>
 class Sensor
 {
-// private:                                                 // Later
 public:
-    T AX, AY, AZ, GX, GY, GZ;                               // IMU
-    T MX, MY, MZ;                                           // MAG
+    T AX, AY, AZ=1, GX, GY, GZ;                               // IMU
+    MPU6500 IMU;
+
+    #ifdef HAS_MAGNETOMETER
+    T MX, MY, MZ=1;                                           // MAG
+    HMC5883L MAG;
+    #endif
     
-public:
+    
+    public:
     Sensor();
     ~Sensor();
-
+    
     void InitializeIMU();
-    void InitializeMAG();
     void UpdateIMUData();
     void UpdateIMUData(T &AX, T &AY, T &AZ, T &GX, T &GY, T &GZ);
-    void UpdateMAGData();
-    void UpdateMAGData(T &MX, T &MY, T &MZ);    
     void NormalizeVectors();
     void StartSensors();
+
+    #ifdef HAS_MAGNETOMETER
+    void InitializeMAG();
+    void UpdateMAGData();
+    void UpdateMAGData(T &MX, T &MY, T &MZ);    
+    #endif
 };
 template<typename T>
-
 
 
 class Quaternion
 {
 private:
-    void Normalize();
 public:
-    T w=1, x=0, y=0, z=0;
+void Normalize();
+T w=1, x=0, y=0, z=0;
 
     Quaternion();
     Quaternion(T w, T x, T y, T z);
     ~Quaternion();
-
+    
     // Operations
     Quaternion<T> operator*(Quaternion<T> Other);
     Quaternion<T> & operator*=(Quaternion<T> Other);        // Return by reference and not pointer
@@ -93,7 +110,12 @@ public:
 
     // Filters
     void UpdateMahony(Sensor<T> &S);
-    void UpdateMahony(T &GX, T &GY, T &GZ, T &AX, T &AY, T &AZ, T &MX, T &MY, T &MZ);
     void UpdateMadgwick(Sensor<T> &S);
-    void UpdateMadgwick(T &GX, T &GY, T &GZ, T &AX, T &AY, T &AZ, T &MX, T &MY, T &MZ);    
 };
+
+
+// Structures
+typedef struct {
+    Quaternion<NumericType> Q;
+    NumericType GX, GY, GZ;
+} SensorData;

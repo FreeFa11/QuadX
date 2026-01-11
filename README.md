@@ -13,7 +13,7 @@ A small Drone designed to be simple and cheap and not require a physical control
     <img src="./Hardware/Frame/RenderNOBG.png" alt="Image 1" width="70%"/>
 </p>
 
-*Work In Progress* :)
+*Slight Mofidication Remaining* :)
 
 ## [PCB](./Hardware/PCB/)
 
@@ -58,12 +58,26 @@ The Firmware has been developed using PlatformIO. This Firmware shares a lot of 
 
   *`quadx.local` only works in Wifi AP mode*
 
-The Web Interface has mostly been completed in terms of functionality. Still needs some work in terms of UI. 
+<br>
 
-*FLIGHT SYSTEM is Yet to be developed*
+The Web Interface has mostly been completed in terms of functionality. Still needs some work in terms of UI. 
+<p align="center">
+    <img src="./Webpage/Page 1.jpg" alt="Image 1" width="27%" hspace="12"/>
+    <img src="./Webpage/Page 2.jpg" alt="Image 1" width="27%" hspace="12"/>
+    <img src="./Webpage/Page 3.jpg" alt="Image 1" width="27%" hspace="12"/>
+</p>
+
+PID gains and controller sensitivity can be easily adjusted from the web interface along with the Wifi settings.
+
+## TODO
+- Improve Firmware and Frame
+- Real Time Camera Support
+- Position and Altitude Hold
+- DIY Optical Flow from Camera
+
 
 ## License
 
 All the files in [Hardware](./Hardware/) folder are licensed under [CERN OHL-P v2](./Hardware/LICENSE).
 
-All other files are lincensed under [BSD 3-Clause](./LICENSE).
+All other files are licensed under [BSD 3-Clause](./LICENSE).
