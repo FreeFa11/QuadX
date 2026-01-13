@@ -2,18 +2,19 @@
 A small Drone designed to be simple and cheap and not require a physical controller. It can be controlled by any Smartphone or Computer through Wifi connection using a web browser. 
 
 ## Project Outline
-- <B>Firmware:</B> Flight Controller and Communication codes.
-- <B>Hardware:</B> Schematic and 3D Files.
+- <B>Firmware:</B> Flight Controller and Sensors
+- <B>Hardware:</B> Schematic, PCB and 3D Files
 - <B>Webpage:</B> Controller Webpage Files
 
 
 ## [Frame](./Hardware/Frame/)
 
 <p align="center">
-    <img src="./Hardware/Frame/RenderNOBG.png" alt="Image 1" width="70%"/>
+    <img src="./Hardware/Frame/FrameNOBG.png" alt="Image 1" width="100%"/>
 </p>
 
-*Slight Mofidication Remaining* :)
+3D printed drone frame designed to easily hold 8mm diameter coreless motors and the custom Flight Controller [Board](./Hardware/PCB/).
+
 
 ## [PCB](./Hardware/PCB/)
 
@@ -70,7 +71,7 @@ The Web Interface has mostly been completed in terms of functionality. Still nee
 PID gains and controller sensitivity can be easily adjusted from the web interface along with the Wifi settings.
 
 ## TODO
-- Improve Firmware and Frame
+- Improve Firmware and Controller
 - Real Time Camera Support
 - Position and Altitude Hold
 - DIY Optical Flow from Camera
