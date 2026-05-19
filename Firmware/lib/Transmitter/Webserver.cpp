@@ -5,18 +5,15 @@
 AsyncWebServer myServer(WebserverPort);
 AsyncWebSocket mySocket(WebsocketURL);
 Preferences PermanentData;
-QueueHandle_t ControllerQueue;
-QueueHandle_t CalibrationQueue;
-QueueHandle_t StateQueue;       // For switching the state
 
-
-
+                                                                                                                                                                                                         
 // Definitions
 Webserver::Webserver(){}
 Webserver::~Webserver(){}
 
 void Webserver::StartWiFi()
 {
+    WiFi.channel(1);
     PermanentData.begin("Connection");
     if (PermanentData.isKey("mode"))
     {
@@ -24,13 +21,13 @@ void Webserver::StartWiFi()
         {
             WiFi.mode(WIFI_MODE_AP);
             WiFi.setHostname("QuadX");
-            WiFi.softAP(PermanentData.getString("ssid"), PermanentData.getString("pass"));
+            WiFi.softAP(PermanentData.getString("ssid"), PermanentData.getString("pass"), 1);
         }
         else
         {
             WiFi.mode(WIFI_MODE_STA);
             WiFi.setHostname("QuadX");
-            WiFi.begin(PermanentData.getString("ssid"), PermanentData.getString("pass"));
+            WiFi.begin(PermanentData.getString("ssid"), PermanentData.getString("pass"), 1);
 
             // Wait till Connection
             Serial.print("\nConnecting ");
@@ -55,7 +52,7 @@ void Webserver::StartWiFi()
     {
         WiFi.mode(WIFI_MODE_AP);
         WiFi.setHostname("QuadX");
-        WiFi.softAP("QuadX", "letsrock");
+        WiFi.softAP("QuadX", "letsrock", 1);
     }
     PermanentData.end();
    
@@ -71,10 +68,16 @@ void Webserver::StartWiFi()
     // Print the IP
     Serial.print("\nIP Address: ");
     Serial.println(WiFi.softAPIP());
+    Serial.print("MAC Address: ");
+    Serial.println(WiFi.macAddress());
+    Serial.print("AP MAC Address: ");
+    Serial.println(WiFi.softAPmacAddress());
+    Serial.println();
     vTaskDelay(100 /portTICK_PERIOD_MS);
     
     // Multicast DNS 
     MDNS.begin(DomainName);
+    vTaskDelay(100 /portTICK_PERIOD_MS);
 }
 
 void Webserver::StartWebserver()
@@ -107,11 +110,6 @@ void Webserver::StartWebserver()
     myServer.addHandler(&mySocket);
     myServer.begin();
     mySocket.onEvent(onWebSocketEvent);
-
-    // Define Queue
-    ControllerQueue = xQueueCreate(2, sizeof(ControllerData));
-    CalibrationQueue = xQueueCreate(2, sizeof(CalibrationData));
-    StateQueue = xQueueCreate(1, sizeof(States));
 }
 
 void onWebSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)

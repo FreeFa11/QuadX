@@ -2,7 +2,7 @@
 
 // Definitions
 #define SDAWire             1
-#define SCLWire             2
+#define SCLWire             0
 
 // Filter Tuning
 #define NumericType         float
@@ -18,11 +18,10 @@
 #define MAX_YAW_DEG_SEC     90
 #define TimerRateModeFreq   1000        // Must be integer multiple of Angle Mode Frequency
 #define TimerAngleModeFreq  250
-#define TimerAltitudeFreq   10
 
 // Setup
 // #define HAS_MAGNETOMETER
-// #define HAS_BAROMETER
+#define HAS_BAROMETER
 
 
 
@@ -36,7 +35,6 @@
 #define TimerRateModeCount      1000000/TimerRateModeFreq
 #define TimerAngleModeCount     1000000/TimerAngleModeFreq
 #define TimerModeSwitchCount    (TimerRateModeFreq/TimerAngleModeFreq)
-#define TimerAltitudeCount      (TimerRateModeCount/TimerAltitudeFreq)
 
 
 // Includes
@@ -68,8 +66,8 @@ class Sensor
 {
 public:
     T AX, AY, AZ=1, GX, GY, GZ;                               // IMU
-    MPU6500 IMU;
-    // BMI160 IMU;
+    // MPU6500 IMU;
+    BMI160 IMU;
 
     #ifdef HAS_MAGNETOMETER
     T MX, MY, MZ=1;                                           // MAG
@@ -78,7 +76,7 @@ public:
 
     #ifdef HAS_BAROMETER
     BMP280 BARO;
-    T P0, Pressure, Altitude;
+    T Pressure, Altitude;
     #endif
     
     public:

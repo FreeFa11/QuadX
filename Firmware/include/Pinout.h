@@ -1,53 +1,42 @@
-// Y4  D2
-// Y3  D1
-// Y5  D3
-// Y2  D0
-// Y6  D4
-// Y7  D5
-// Y8  D6
-// Y9  D7
+#pragma once
 
 
-#define PWDN_GPIO_NUM     46
-#define RESET_GPIO_NUM    -1
+// Camera Connector
+#define PCB_CAM_PWDN        46
+#define PCB_CAM_RESET       -1
 
-#define VSYNC_GPIO_NUM    21
-#define HREF_GPIO_NUM     14
-#define PCLK_GPIO_NUM     9
-#define XCLK_GPIO_NUM     12
+#define PCB_CAM_VSYNC       21
+#define PCB_CAM_HREF        14
+#define PCB_CAM_PCLK        9
+#define PCB_CAM_XCLK        12
 
-#define SIOD_GPIO_NUM     45
-#define SIOC_GPIO_NUM     47
+#define PCB_CAM_SIOD        45
+#define PCB_CAM_SIOC        47
 
-#define Y9_GPIO_NUM       13
-#define Y8_GPIO_NUM       11
-#define Y7_GPIO_NUM       10
-#define Y6_GPIO_NUM       6
-#define Y5_GPIO_NUM       15
-#define Y4_GPIO_NUM       18
-#define Y3_GPIO_NUM       17
-#define Y2_GPIO_NUM       7
-
-
-#define SDA               1
-#define SCL               2
-
-#define TX                43
-#define RX                44
-
-#define SDI               39
-#define SDO               40
-#define CLK               41
-#define CSE               42                    // External Device
-#define CSI               3                     // Internal Device (BMI160)
+#define PCB_CAM_Y9          13      // Y9  D7
+#define PCB_CAM_Y8          11      // Y8  D6
+#define PCB_CAM_Y7          10      // Y7  D5
+#define PCB_CAM_Y6          6       // Y6  D4
+#define PCB_CAM_Y5          15      // Y5  D3
+#define PCB_CAM_Y4          18      // Y4  D2
+#define PCB_CAM_Y3          17      // Y3  D1
+#define PCB_CAM_Y2          7       // Y2  D0
 
 
-#define M1                48
-#define M2                8
-#define M3                16
-#define M4                38
+// Serial IO
+#define PCB_SDA             1
+#define PCB_SCL             2
 
+#define PCB_TX              43
+#define PCB_RX              44
 
+#define PCB_SDI             39
+#define PCB_SDO             40
+#define PCB_CLK             41
+#define PCB_CSE             42      // External Device
+#define PCB_CSI             3       // Internal Device (BMI160)
 
-
-
+#define PCB_M1              48
+#define PCB_M2              8
+#define PCB_M3              16
+#define PCB_M4              38

@@ -1,18 +1,15 @@
 // Includes
 #include <Arduino.h>
 #include <freertos/FreeRTOS.h>
+#include "Pinout.h"
 
 // Definition
-#define MotorFrequency          30000
+#define MotorFrequency          24000
 #define MotorResolution         10
-// #define MotorPinA               2
-// #define MotorPinB               3
-// #define MotorPinC               4
-// #define MotorPinD               5
-#define MotorPinA               4
-#define MotorPinB               5
-#define MotorPinC               2
-#define MotorPinD               3
+#define MotorPinA               PCB_M1
+#define MotorPinB               PCB_M4
+#define MotorPinC               PCB_M3
+#define MotorPinD               PCB_M2
 #define MotorChannelA           0
 #define MotorChannelB           1
 #define MotorChannelC           2

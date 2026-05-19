@@ -3,13 +3,14 @@
 #include <USB.h>
 #include <LittleFS.h>
 #include <Preferences.h>
+#include <esp_now.h>
 
 // Modular Codes
 #include <Motor.h>
 #include <Sensor.h>
 #include <Webserver.h>
-#include "Control.h"
-
+#include <Transmitter.h>
+#include <Control.h>
 
 
 // Task Handles & Functions
@@ -31,23 +32,36 @@ static void IRAM_ATTR onTimerSensor(){
 // All the Initializations
 void setup()
 {
-  Serial.begin(576000);
+  USBSerial.begin(115200);
   LittleFS.begin();
 
 // Wifi & Server
   droneWebserver.StartWiFi();
   droneWebserver.StartWebserver();
 
+  // Transmitter
+  StartReciever();
+
+  // Test Sensor
+  // Sensor<float> droneSensor;
+  // droneSensor.InitializeIMU();
+  // droneSensor.InitializeBARO();
+  // droneSensor.StartSensors();
+  // while(true){delay(1000);}
+
+
 //  Tasks
-  xTaskCreatePinnedToCore(
-    Blinky,
-    "Blinky",
-    1000,
-    NULL,
-    3,
-    &BlinkyTask,
-    0
-  );
+  // xTaskCreatePinnedToCore(
+  //   Blinky,
+  //   "Blinky",
+  //   1000,
+  //   NULL,
+  //   3,
+  //   &BlinkyTask,
+  //   0
+  // );
+
+  
   xTaskCreatePinnedToCore(
     SystemTask,
     "SystemTask",
@@ -55,8 +69,8 @@ void setup()
     NULL,
     3,
     &ControllerTask,
-    0
-  );
+    1
+  );  
 }
 void loop(){vTaskDelete(NULL);}
 void Blinky(void *param)
@@ -122,6 +136,7 @@ void System::FlightHandle()
   
   // Control System Objects
   uint8_t counter=0;
+  uint16_t altitude_counter=0;
   float InputPitch=0, InputRoll=0, InputYaw=0;
   Quaternion<float> DesiredAngle, ErrorAngle;
   PID pid_roll, pid_pitch, pid_yaw;
@@ -145,22 +160,24 @@ void System::FlightHandle()
   pid_gx.SetGain(droneSettings.P, droneSettings.I, droneSettings.D);
   pid_gy.SetGain(droneSettings.P, droneSettings.I, droneSettings.D);
   pid_gz.SetGain(droneSettings.P, droneSettings.I, droneSettings.D);
-  pid_gx.SetIntegralLimit(100);
-  pid_gy.SetIntegralLimit(100);
-  pid_gz.SetIntegralLimit(100);
+  pid_gx.SetIntegralLimit(150);
+  pid_gy.SetIntegralLimit(150);
+  pid_gz.SetIntegralLimit(150);
   pid_gx.SetControlFrequency(TimerRateModeFreq);
   pid_gy.SetControlFrequency(TimerRateModeFreq);
   pid_gz.SetControlFrequency(TimerRateModeFreq);
   
 
   // Initialization
+  droneSensor.InitializeIMU();
   #ifdef HAS_MAGNETOMETER
   droneSensor.InitializeMAG();
   #endif
-  droneSensor.InitializeIMU();
+  #ifdef HAS_BAROMETER
+  droneSensor.InitializeBARO();
+  #endif
   droneMotor.InitializeMotor();
   timerAlarmEnable(timer_sensor);
-  // droneSensor.StartSensors();      // Independent of Main System
 
   
 
@@ -173,12 +190,13 @@ void System::FlightHandle()
     droneSensor.UpdateIMUData();
     droneSensor.NormalizeVectors();
     counter += 1;
-    counter %= TimerModeSwitchCount;
 
 
     // ** Angle Control **//
-    if(counter == 1)
+    if(counter >= TimerModeSwitchCount)
     {
+      counter = 0;
+
       // Update Attitude
       droneAttitude.UpdateMahony(droneSensor);
       // droneAttitude.UpdateMadgwick(droneSensor);
@@ -215,36 +233,44 @@ void System::FlightHandle()
       ErrorAngle = (ErrorAngle.w < 0)? ErrorAngle*(-1): ErrorAngle;
       
       // PID Angle Corrected Rates
-      DesiredGX = - pid_roll.Update(ErrorAngle.x);
+      DesiredGX = - pid_roll.Update(ErrorAngle.x);  // World Frame
       DesiredGY = - pid_pitch.Update(ErrorAngle.y);
       DesiredGZ = - pid_yaw.Update(ErrorAngle.z);
       
-      // Serial.printf("%.4f,%.4f,%.4f,%.4f\n", DesiredAngle.w, DesiredAngle.x, DesiredAngle.y, DesiredAngle.z);        
-      // Serial.printf("%.4f,%.4f,%.4f,%.4f\n", droneAttitude.w, droneAttitude.x, droneAttitude.y, droneAttitude.z);     
-      // Serial.printf(">X:%.4f\n>Y:%.4f\n>Z:%.4f\n", DesiredGX, DesiredGY, DesiredGZ);     
+      // USBSerial.printf("%.4f,%.4f,%.4f,%.4f\n", DesiredAngle.w, DesiredAngle.x, DesiredAngle.y, DesiredAngle.z);        
+      // USBSerial.printf("%.4f,%.4f,%.4f,%.4f\n", droneAttitude.w, droneAttitude.x, droneAttitude.y, droneAttitude.z);     
+      // USBSerial.printf(">X:%.4f\n>Y:%.4f\n>Z:%.4f\n", DesiredGX, DesiredGY, DesiredGZ);
     }
+
+    // altitude_counter += 1;
+    // if (altitude_counter >= TimerAltitudeCount) {
+    //   altitude_counter = 0;
+      // droneSensor.UpdateBAROData();
+    // }
     
+    USBSerial.printf(">X:%.2f\n>Y:%.2f\n>Z:%.2f\n", droneSensor.GX, droneSensor.GY, droneSensor.GZ);    
     
     //** Rate Control **//
+    // Actuation is done in body frame. Desired World Rate -> Desired Body Rate
     DesiredRateBodyFrame = droneAttitude.inverse()*Quaternion<float>(0,DesiredGX,DesiredGY,DesiredGZ)*droneAttitude;
-    ErrorGX = DesiredRateBodyFrame.x - droneSensor.GX;
-    ErrorGY = DesiredRateBodyFrame.y - droneSensor.GY;
-    ErrorGZ = DesiredRateBodyFrame.z - droneSensor.GZ;
+    // ErrorGX = DesiredRateBodyFrame.x - droneSensor.GX;
+    // ErrorGY = DesiredRateBodyFrame.y - droneSensor.GY;
+    // ErrorGZ = DesiredRateBodyFrame.z - droneSensor.GZ;
+    ErrorGX = 0 - droneSensor.GX;
+    ErrorGY = 0 - droneSensor.GY;
+    ErrorGZ = 0 - droneSensor.GZ;
     CorrectedGX = pid_gx.Update(ErrorGX);
     CorrectedGY = pid_gx.Update(ErrorGY);
     CorrectedGZ = pid_gx.Update(ErrorGZ);
 
 
-    if (remoteInput.Toggle2 & remoteInput.Toggle1){
+    if (remoteInput.Toggle1){
       // Mixer
-      droneMotor.A  = Clamp(uint16_t(droneSettings.motorA + remoteInput.Slider1*5 - CorrectedGX - CorrectedGY + CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
-      droneMotor.B  = Clamp(uint16_t(droneSettings.motorB + remoteInput.Slider1*5 - CorrectedGX + CorrectedGY - CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
-      droneMotor.C  = Clamp(uint16_t(droneSettings.motorC + remoteInput.Slider1*5 + CorrectedGX + CorrectedGY + CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
-      droneMotor.D  = Clamp(uint16_t(droneSettings.motorD + remoteInput.Slider1*5 + CorrectedGX - CorrectedGY - CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
+      droneMotor.A  = Clamp(uint16_t(droneSettings.motorA + remoteInput.Slider1*5 + CorrectedGX + CorrectedGY - CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
+      droneMotor.B  = Clamp(uint16_t(droneSettings.motorB + remoteInput.Slider1*5 + CorrectedGX - CorrectedGY + CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
+      droneMotor.C  = Clamp(uint16_t(droneSettings.motorC + remoteInput.Slider1*5 - CorrectedGX - CorrectedGY - CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
+      droneMotor.D  = Clamp(uint16_t(droneSettings.motorD + remoteInput.Slider1*5 - CorrectedGX + CorrectedGY + CorrectedGZ), uint16_t(0), uint16_t(droneSettings.maxthrottle));
       droneMotor.ActuateMotor();
-    }
-    else if (remoteInput.Toggle1){
-      Serial.printf("X1:%d\tY1:%d\tX2:%d\tY2:%d\n", remoteInput.JoystickX1, remoteInput.JoystickY1, remoteInput.JoystickX2, remoteInput.JoystickY2);
     }
     else{
       droneMotor.UpdateMotor(0,0,0,0);
@@ -267,14 +293,13 @@ void System::CalibrationHandle()
   {
     if (xQueueReceive(CalibrationQueue, &newData, 0))
     {
-      if (newData.save)
-            {
-              SaveCalibration(newData);
-            }
-      else  {
-              droneMotor.UpdateMotor(newData.motorA, newData.motorB, newData.motorC, newData.motorD);
-              droneMotor.ActuateMotor();
-            }      
+      if (newData.save) {
+          SaveCalibration(newData);
+        }
+      else {
+          droneMotor.UpdateMotor(newData.motorA, newData.motorB, newData.motorC, newData.motorD);
+          droneMotor.ActuateMotor();
+        }      
     }
 
     vTaskDelay(5 / portTICK_PERIOD_MS);

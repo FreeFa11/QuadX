@@ -5,7 +5,7 @@
 TaskHandle_t SensorTaskHandle;
 template class Sensor<NumericType>; 
 template class Quaternion<NumericType>;
-TwoWire *myI2C = new TwoWire(0);
+// SPIClass *mySPI = new SPIClass(HSPI);
 
 
 // Definitions
@@ -248,15 +248,19 @@ void Quaternion<T>::UpdateMadgwick(Sensor<T> &S)
 template<typename T>
 void Sensor<T>::InitializeIMU()
 {
-  myI2C->begin(SDAWire, SCLWire);
-  myI2C->setClock(400000L);
+  // BMI160
+  // mySPI->begin(PCB_CLK, PCB_SDI, PCB_SDO, PCB_CSI);
+  // IMU.ConfigSerial(mySPI, PCB_CSI);
+  // IMU.Begin();
   
-  IMU.Config(myI2C, MPU6500::I2C_ADDR_PRIM);
+  // MPU6500
+  Wire.begin(PCB_SDA, PCB_SCL);
+  Wire.setClock(400000);
+  IMU.Config(&Wire, MPU6500::I2C_ADDR_PRIM);
   IMU.Begin();
   IMU.ConfigAccelRange(MPU6500::ACCEL_RANGE_2G);
   IMU.ConfigGyroRange(MPU6500::GYRO_RANGE_1000DPS);
-  IMU.ConfigDLPFBandwidth(MPU6500::DLPF_BANDWIDTH_92HZ);
-  
+  IMU.ConfigDLPFBandwidth(MPU6500::DLPF_BANDWIDTH_92HZ);  
   // Calibration
   IMU.ConfigAccelBiasX(547);
   IMU.ConfigAccelBiasY(-3);
@@ -264,8 +268,7 @@ void Sensor<T>::InitializeIMU()
   IMU.ConfigGyroBiasX(68);
   IMU.ConfigGyroBiasY(93);
   IMU.ConfigGyroBiasZ(-35);
- 
-//           Accelerometer
+//       Accelerometer
 //  [ 546.65f  -2.7620f   1752.4f]
 
 //  [ 1.0005f  -0.0005f   0.0252f]
@@ -279,16 +282,32 @@ void Sensor<T>::InitializeIMU()
 template<typename T>
 void Sensor<T>::UpdateIMUData()
 {
-// Sensor Data
+// BMI160
+  // int16_t data[6];
+  // IMU.getAccelGyroData(data);
+  // GX = data[0];
+  // GY = data[1];
+  // GZ = data[2];
+  // AX = data[3];
+  // AY = data[4]; 
+  // AZ = data[5];
+
+// MPU6500
+  // IMU.Read();
+  // AX = IMU.accel_x();
+  // AY = IMU.accel_y(); 
+  // AZ = IMU.accel_z();
+  // GX = IMU.gyro_x_radps();
+  // GY = IMU.gyro_y_radps();
+  // GZ = IMU.gyro_z_radps();
+  // This is for Current Setup Only (180 Rotation About Y-Axis)
   IMU.Read();
-  
-  AX =  IMU.accel_x();
-  AY =  IMU.accel_y(); 
-  AZ =  IMU.accel_z();
-  
-  GX = IMU.gyro_x_radps();
+  AX = -IMU.accel_x();
+  AY = IMU.accel_y(); 
+  AZ = -IMU.accel_z();
+  GX = -IMU.gyro_x_radps();
   GY = IMU.gyro_y_radps();
-  GZ = IMU.gyro_z_radps();
+  GZ = -IMU.gyro_z_radps();
 }
 
 template<typename T>
@@ -302,7 +321,6 @@ void Sensor<T>::UpdateIMUData(T &AX, T &AY, T &AZ, T &GX, T &GY, T &GZ)
   GX = this->GX;
   GY = this->GY;
   GZ = this->GZ;
-
 }
 
 #ifdef HAS_MAGNETOMETER
@@ -311,7 +329,7 @@ void Sensor<T>::InitializeMAG()
 {
   myI2C->begin(SDAWire, SCLWire);
   myI2C->setClock(400000L);
-
+  
   MAG.Config(myI2C, HMC5883L_ADDRESS);
   MAG.initialize();
   MAG.setMode(HMC5883L_MODE_CONTINUOUS);
@@ -337,6 +355,42 @@ void Sensor<T>::UpdateMAGData(T &MX, T &MY, T &MZ)
   MY = this->MY;
   MZ = this->MZ;
 }  
+#endif
+
+#ifdef HAS_BAROMETER
+template<typename T>
+void Sensor<T>::InitializeBARO()
+{  
+  Wire.begin(PCB_SDA, PCB_SCL);
+  Wire.setClock(400000L);
+
+  if (!BARO.begin(&Wire))
+  {USBSerial.println("Error in BARO Begin!!");}
+  BARO.setOversampling(BMP280_COMMAND_OVERSAMPLING_MAX);
+  BARO.setFilter(2);
+
+  for (int i=0; i<3; i++) {
+    vTaskDelay(BARO.startMeasurment() / portTICK_RATE_MS);
+    BARO.getTemperatureAndPressure(Pressure, P0);
+    Altitude += P0;       }
+  P0 /= 3;
+  Pressure = P0;
+  Altitude = 0;
+}
+
+template<typename T>
+void Sensor<T>::UpdateBAROData()
+{
+  float TE, PR;
+  char result = BARO.getTemperatureAndPressure(TE, PR);
+  Pressure += 0.05 * (PR - Pressure);
+  
+  if(result!=0) {
+    Altitude = BARO.altitude(Pressure, P0);
+  }
+
+  BARO.startMeasurment();
+}
 #endif
 
 template<typename T>
@@ -368,7 +422,7 @@ void Sensor<T>::StartSensors()
     (void*)this,
     6,
     &SensorTaskHandle,
-    0
+    1
   );
 }
 
@@ -399,14 +453,21 @@ void SensorTask(void* param)
 
     thisSensor->UpdateIMUData();
     thisSensor->NormalizeVectors();
+    // thisSensor->UpdateBAROData();
+    // USBSerial.print("T = \t");USBSerial.print(Temperature,2); USBSerial.print(" degC\t");
+    // USBSerial.print("P = \t");USBSerial.print(thisSensor->Pressure,2); USBSerial.print(" mBar\t");
+    // USBSerial.print("A = \t");USBSerial.print(thisSensor->Altitude,2); USBSerial.println(" m");
+    // USBSerial.printf(">Altitude:%f\n", thisSensor->Altitude);
+
+    delay(10);
     myQuaternion.UpdateMahony(*thisSensor);
     // myQuaternion.UpdateMadgwick(*thisSensor);
 
 
-    // Serial.printf("W:%.2f\tX:%.2f\tY:%.2f\tZ:%.2f\n", myQuaternion.w, myQuaternion.x, myQuaternion.y, myQuaternion.z);
-    // Serial.printf("%.4f,%.4f,%.4f,%.4f\n", myQuaternion.w, myQuaternion.x, myQuaternion.y, myQuaternion.z);
-    // Serial.printf("X:%.2f\tY:%.2f\tZ:%.2f\n", thisSensor->AX, thisSensor->AY, thisSensor->AZ);
-    // Serial.printf("X:%.2f\tY:%.2f\tZ:%.2f\n", thisSensor->MX, thisSensor->MY, thisSensor->MZ);
-    // Serial.printf(">X:%.2f\n", thisSensor->AX);
+    USBSerial.printf("W:%.2f\tX:%.2f\tY:%.2f\tZ:%.2f\n", myQuaternion.w, myQuaternion.x, myQuaternion.y, myQuaternion.z);
+    // USBSerial.printf("%.4f,%.4f,%.4f,%.4f\n", myQuaternion.w, myQuaternion.x, myQuaternion.y, myQuaternion.z);
+    // USBSerial.printf("X:%.2f\tY:%.2f\tZ:%.2f\n", thisSensor->AX, thisSensor->AY, thisSensor->AZ);
+    // USBSerial.printf("X:%.2f\tY:%.2f\tZ:%.2f\n", thisSensor->MX, thisSensor->MY, thisSensor->MZ);
+    // USBSerial.printf(">X:%.2f\n", thisSensor->AX);
   }
 }
